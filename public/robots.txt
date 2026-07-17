@@ -1,0 +1,9 @@
+# Robots.txt for NEW BALAJI PROPERTY
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/login
+Disallow: /admin/dashboard
+
+# Sitemap Location
+Sitemap: https://newbalajiproperty.com/sitemap.xml
