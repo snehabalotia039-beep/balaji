@@ -85,29 +85,20 @@ export default function PropertyDetails() {
         message: enquiry.message
       });
 
-      toast.success('Enquiry Submitted Successfully!');
+      const whatsappMessage = `------------------------------------\n🏠 NEW BALAJI PROPERTY\n\nNew Enquiry Received\n\nName: ${enquiry.name}\nPhone: ${enquiry.phone}\nEmail: ${enquiry.email}\nRequirement: ${enquiry.requirement || 'Urgent Information Request'}\nBudget: ${enquiry.budget || formatPrice(property.price, property.deal_type)}\nMessage: ${enquiry.message || 'No additional message.'}\n------------------------------------`;
+      const whatsappUrl = `https://wa.me/919213521804?text=${encodeURIComponent(whatsappMessage)}`;
 
-      // Formulate WhatsApp message and redirect
-      const phoneNumber = '919213521804';
-      const whatsAppText = `Hello NEW BALAJI PROPERTY,
+      toast.success('Your enquiry has been submitted successfully.');
 
-I have submitted an enquiry through your website and would like more information regarding the property:
-- Property: ${property.title}
-- Deal Type: ${property.deal_type === 'Rent' ? 'Rent' : 'Buy'}
-- Price: ${formatPrice(property.price, property.deal_type)}
-- Location: ${property.location}
+      try {
+        const newWindow = window.open(whatsappUrl, '_blank');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          throw new Error('Unable to open WhatsApp');
+        }
+      } catch (redirectError) {
+        console.warn('WhatsApp redirect failed:', redirectError);
+      }
 
-My Contact:
-- Name: ${enquiry.name}
-- Phone: ${enquiry.phone}
-- Budget: ${enquiry.budget || formatPrice(property.price, property.deal_type)}
-- Message: ${enquiry.message || 'No additional message.'}`;
-
-      setTimeout(() => {
-        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(whatsAppText)}`, '_blank');
-      }, 1000);
-
-      // Reset form
       setEnquiry({
         name: '',
         phone: '',
