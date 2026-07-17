@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { db } from '../utils/db';
 import { updateSEO } from '../utils/seo';
 import { Calendar, Phone, Mail, User, Clock, CheckCircle2, ChevronRight, Landmark, FileCheck } from 'lucide-react';
+import { db } from '../utils/db';
+import { getCustomerSession } from '../utils/customerAuth';
 import toast from 'react-hot-toast';
 
 export default function BookAppointment() {
@@ -45,19 +46,41 @@ export default function BookAppointment() {
 
     setLoading(true);
     try {
-      await db.submitBooking({
-        name: booking.name,
-        phone: booking.phone,
-        email: booking.email,
-        purpose: booking.purpose,
-        budget: booking.budget || 'Not Specified',
-        preferred_date: booking.preferred_date,
-        preferred_time: booking.preferred_time,
-        message: booking.message
-      });
+      const whatsappMessage = `🏠 NEW BALAJI PROPERTY\n\nNew Appointment Request\n\nName: ${booking.name}\nPhone: ${booking.phone}\nEmail: ${booking.email}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\nProperty Type: ${booking.purpose}\nMessage: ${booking.message || 'No additional message.'}\n\nPlease contact me regarding my appointment.`;
+      const whatsappUrl = `https://wa.me/919213521804?text=${encodeURIComponent(whatsappMessage)}`;
+
+      // If customer is logged in, save booking to DB/localStorage so they can view history
+      try {
+        const sess = await getCustomerSession();
+        const user = sess?.user || sess;
+        if (user) {
+          await db.submitBooking({
+            name: booking.name,
+            phone: booking.phone,
+            email: booking.email,
+            purpose: booking.purpose,
+            budget: booking.budget || 'Not Specified',
+            preferred_date: booking.preferred_date,
+            preferred_time: booking.preferred_time,
+            message: booking.message,
+            user_id: user.id || user.user?.id
+          });
+        }
+      } catch (saveErr) {
+        console.warn('Failed to save booking for customer session:', saveErr);
+      }
 
       toast.success('Consultation Booked Successfully!');
-      
+
+      try {
+        const newWindow = window.open(whatsappUrl, '_blank');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          throw new Error('Unable to open WhatsApp');
+        }
+      } catch (redirectError) {
+        console.warn('WhatsApp redirect failed:', redirectError);
+      }
+
       // Navigate to success landing or home after 2 seconds
       setTimeout(() => {
         navigate('/');

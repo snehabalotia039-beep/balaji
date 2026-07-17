@@ -35,6 +35,7 @@ export default function AdminLogin() {
           }
         }
       } else {
+        // If env-based admin is present, consider session flag
         if (sessionStorage.getItem('balaji_admin_logged_in') === 'true') {
           navigate('/admin/dashboard');
         }
@@ -71,21 +72,23 @@ export default function AdminLogin() {
         if (!adminRecord || adminErr) {
           // Sign out immediately if they are not in the admins whitelist
           await supabase.auth.signOut();
-          throw new Error('Access Denied. You are not registered as an Administrator.');
+          toast.error('Invalid username or password.');
+          setLoading(false);
+          return;
         }
 
         toast.success('Successfully authenticated!');
         navigate('/admin/dashboard');
       } else {
-        // Demo Mode login fallback
-        // Accept any credentials, but log in. Guides user that default is admin@balaji.com / admin123
-        if (email.toLowerCase() === 'admin@balaji.com' && password === 'admin123') {
+        // Environment variable based fallback (do NOT display credentials anywhere)
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || '';
+        const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
+        if (adminEmail && adminPassword && email === adminEmail && password === adminPassword) {
           sessionStorage.setItem('balaji_admin_logged_in', 'true');
-          toast.success('Demo Login Successful!');
+          toast.success('Successfully authenticated!');
           navigate('/admin/dashboard');
         } else {
-          // Let them know the demo credentials, but let them in anyway if they want, or reject to be realistic
-          toast.error('Invalid credentials. For Demo Mode, use:\nEmail: admin@balaji.com\nPassword: admin123');
+          toast.error('Invalid username or password.');
         }
       }
     } catch (err) {
@@ -188,10 +191,8 @@ export default function AdminLogin() {
             <div className="mt-8 bg-slate-950 p-4 border border-dashed border-slate-800 rounded-md flex gap-2.5 items-start text-[11px] leading-relaxed text-slate-400 font-medium">
               <HelpCircle className="w-5 h-5 shrink-0 text-secondary-dark mt-0.5" />
               <div>
-                <span className="font-bold text-slate-300 block mb-1">Demo Mode Activated</span>
-                <span>To test the admin panel dashboard immediately without setting up Supabase, sign in using:</span>
-                <span className="block mt-1.5 font-mono text-secondary">Email: admin@balaji.com</span>
-                <span className="block font-mono text-secondary">Password: admin123</span>
+                <span className="font-bold text-slate-300 block mb-1">Admin Login Unavailable</span>
+                <span>Please configure Supabase or provide admin credentials via environment variables to enable admin access.</span>
               </div>
             </div>
           )}
