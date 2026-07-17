@@ -9,30 +9,29 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (isSupabaseConfigured) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            // Check if user is in admins table
-            const { data: adminRecord, error } = await supabase
-              .from('admins')
-              .select('id')
-              .eq('id', session.user.id)
-              .maybeSingle();
+        if (!isSupabaseConfigured) {
+          setIsAuthenticated(false);
+          return;
+        }
 
-            if (adminRecord && !error) {
-              setIsAuthenticated(true);
-            } else {
-              // If not found in admin table but logged in, sign them out
-              await supabase.auth.signOut();
-              setIsAuthenticated(false);
-            }
-          } else {
-            setIsAuthenticated(false);
-          }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setIsAuthenticated(false);
+          return;
+        }
+
+        const { data: adminRecord, error } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (adminRecord && !error) {
+          setIsAuthenticated(true);
         } else {
-          // Demo Mode: Check session storage
-          const loggedIn = sessionStorage.getItem('balaji_admin_logged_in') === 'true';
-          setIsAuthenticated(loggedIn);
+          // If not found in admin table but logged in, sign them out
+          await supabase.auth.signOut();
+          setIsAuthenticated(false);
         }
       } catch (err) {
         console.error('Auth verification error:', err);
@@ -47,17 +46,19 @@ export default function ProtectedRoute({ children }) {
     // Listen for auth changes
     let authSubscription = null;
     if (isSupabaseConfigured) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session) {
-          const { data: adminRecord } = await supabase
-            .from('admins')
-            .select('id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          setIsAuthenticated(!!adminRecord);
-        } else {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (!session) {
           setIsAuthenticated(false);
+          setLoading(false);
+          return;
         }
+
+        const { data: adminRecord } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        setIsAuthenticated(!!adminRecord);
         setLoading(false);
       });
       authSubscription = subscription;

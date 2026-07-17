@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Core Layout Wrappers
@@ -70,17 +70,41 @@ export default function App() {
           {/* Admin Login Route */}
           <Route path="/admin/login" element={<AdminLogin />} />
           
-          {/* Protected Admin Operations Dashboard */}
-          <Route 
-            path="/admin/dashboard" 
+          {/* Protected Admin Routes */}
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute>
                 <AdminDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route
-            path="/admin"
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/properties"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/enquiries"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/appointments"
             element={
               <ProtectedRoute>
                 <AdminDashboard />

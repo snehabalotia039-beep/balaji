@@ -1,78 +1,84 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
-const CUSTOMER_KEY = 'balaji_customer_session';
-const CUSTOMERS_KEY = 'balaji_customers';
+const CUSTOMER_CONFIG_ERROR = 'Customer authentication requires Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.';
+
+async function ensureConfigured() {
+  if (!isSupabaseConfigured) {
+    throw new Error(CUSTOMER_CONFIG_ERROR);
+  }
+}
+
+async function isAdminUser(userId) {
+  if (!isSupabaseConfigured) return false;
+  const { data, error } = await supabase
+    .from('admins')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+  return !!(data && !error);
+}
 
 export async function registerCustomer({ full_name, phone, email, password }) {
-  if (isSupabaseConfigured) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name, phone }
-      }
-    });
-    if (error) throw error;
-    return data;
+  await ensureConfigured();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name, phone }
+    }
+  });
+
+  if (error) throw error;
+
+  if (data?.user && await isAdminUser(data.user.id)) {
+    await supabase.auth.signOut();
+    throw new Error('Customer registration is not available for this account.');
   }
 
-  // Local fallback
-  const customers = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) || '[]');
-  if (customers.find(c => c.email === email)) throw new Error('User already exists');
-  const user = { id: 'cust-' + Math.random().toString(36).substr(2,9), full_name, phone, email };
-  customers.push({ ...user, password });
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
-  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(user));
-  return user;
+  return data;
 }
 
 export async function loginCustomer({ email, password }) {
-  if (isSupabaseConfigured) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return data;
+  await ensureConfigured();
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+
+  if (data?.user && await isAdminUser(data.user.id)) {
+    await supabase.auth.signOut();
+    throw new Error('Invalid email or password');
   }
 
-  const customers = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) || '[]');
-  const found = customers.find(c => c.email === email && c.password === password);
-  if (!found) throw new Error('Invalid credentials');
-  const session = { id: found.id, full_name: found.full_name, phone: found.phone, email: found.email };
-  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(session));
-  return { user: session };
+  return data;
 }
 
 export async function logoutCustomer() {
-  if (isSupabaseConfigured) {
-    await supabase.auth.signOut();
-    return;
-  }
-  localStorage.removeItem(CUSTOMER_KEY);
+  await ensureConfigured();
+  await supabase.auth.signOut();
 }
 
 export async function getCustomerSession() {
-  if (isSupabaseConfigured) {
-    const { data } = await supabase.auth.getSession();
-    return data.session || null;
+  await ensureConfigured();
+  const { data } = await supabase.auth.getSession();
+  const session = data.session || null;
+  if (!session) return null;
+  if (await isAdminUser(session.user.id)) {
+    await supabase.auth.signOut();
+    return null;
   }
-  return JSON.parse(localStorage.getItem(CUSTOMER_KEY) || 'null');
+  return session;
 }
 
 export async function updateCustomerProfile(updates) {
-  if (isSupabaseConfigured) {
-    const { data, error } = await supabase.auth.updateUser({ data: updates });
-    if (error) throw error;
-    return data;
+  await ensureConfigured();
+  const { data, error } = await supabase.auth.updateUser({ data: updates });
+  if (error) throw error;
+  if (data?.user && await isAdminUser(data.user.id)) {
+    await supabase.auth.signOut();
+    throw new Error('Unauthorized customer profile update.');
   }
-  const session = JSON.parse(localStorage.getItem(CUSTOMER_KEY) || 'null');
-  if (!session) throw new Error('Not authenticated');
-  const customers = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) || '[]');
-  const idx = customers.findIndex(c => c.email === session.email);
-  if (idx === -1) throw new Error('User not found');
-  customers[idx] = { ...customers[idx], ...updates };
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
-  const updated = { ...session, ...updates };
-  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(updated));
-  return updated;
+  return data;
 }
 
 export default {

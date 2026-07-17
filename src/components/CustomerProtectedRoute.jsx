@@ -8,10 +8,15 @@ export default function CustomerProtectedRoute({ children }) {
 
   useEffect(() => {
     (async () => {
-      const sess = await getCustomerSession();
-      const user = sess?.user || sess;
-      setIsAuthenticated(!!user);
-      setLoading(false);
+      try {
+        const sess = await getCustomerSession();
+        const user = sess?.user || sess;
+        setIsAuthenticated(!!user);
+      } catch (err) {
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 

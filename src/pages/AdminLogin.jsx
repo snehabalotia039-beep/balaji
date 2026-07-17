@@ -20,25 +20,19 @@ export default function AdminLogin() {
 
     // If already logged in, redirect
     const checkSession = async () => {
-      if (isSupabaseConfigured) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Check if admin
-          const { data: adminRecord } = await supabase
-            .from('admins')
-            .select('id')
-            .eq('id', session.user.id)
-            .maybeSingle();
+      if (!isSupabaseConfigured) return;
 
-          if (adminRecord) {
-            navigate('/admin/dashboard');
-          }
-        }
-      } else {
-        // If env-based admin is present, consider session flag
-        if (sessionStorage.getItem('balaji_admin_logged_in') === 'true') {
-          navigate('/admin/dashboard');
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: adminRecord } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (adminRecord) {
+        navigate('/admin/dashboard');
       }
     };
     checkSession();
@@ -53,44 +47,37 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      if (isSupabaseConfigured) {
-        // Authenticate with Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) throw error;
-
-        // Verify if the authenticated user is registered in the admins table
-        const { data: adminRecord, error: adminErr } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        if (!adminRecord || adminErr) {
-          // Sign out immediately if they are not in the admins whitelist
-          await supabase.auth.signOut();
-          toast.error('Invalid username or password.');
-          setLoading(false);
-          return;
-        }
-
-        toast.success('Successfully authenticated!');
-        navigate('/admin/dashboard');
-      } else {
-        // Environment variable based fallback (do NOT display credentials anywhere)
-        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || '';
-        const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
-        if (adminEmail && adminPassword && email === adminEmail && password === adminPassword) {
-          sessionStorage.setItem('balaji_admin_logged_in', 'true');
-          toast.success('Successfully authenticated!');
-          navigate('/admin/dashboard');
-        } else {
-          toast.error('Invalid username or password.');
-        }
+      if (!isSupabaseConfigured) {
+        toast.error('Admin login requires Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+        setLoading(false);
+        return;
       }
+
+      // Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      // Verify if the authenticated user is registered in the admins table
+      const { data: adminRecord, error: adminErr } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (!adminRecord || adminErr) {
+        // Sign out immediately if they are not in the admins whitelist
+        await supabase.auth.signOut();
+        toast.error('Invalid email or password');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Successfully authenticated!');
+      navigate('/admin/dashboard');
     } catch (err) {
       toast.error(err.message || 'Authentication failed. Please verify credentials.');
       console.error(err);
@@ -148,7 +135,7 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   required
-                  placeholder="admin@balaji.com"
+                  placeholder="Enter admin email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-md pl-10 pr-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-white font-medium"
@@ -186,13 +173,12 @@ export default function AdminLogin() {
 
           </form>
 
-          {/* Info card describing fallback */}
           {!isSupabaseConfigured && (
             <div className="mt-8 bg-slate-950 p-4 border border-dashed border-slate-800 rounded-md flex gap-2.5 items-start text-[11px] leading-relaxed text-slate-400 font-medium">
               <HelpCircle className="w-5 h-5 shrink-0 text-secondary-dark mt-0.5" />
               <div>
-                <span className="font-bold text-slate-300 block mb-1">Admin Login Unavailable</span>
-                <span>Please configure Supabase or provide admin credentials via environment variables to enable admin access.</span>
+                <span className="font-bold text-slate-300 block mb-1">Admin Login Disabled</span>
+                <span>Admin access requires Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.</span>
               </div>
             </div>
           )}
