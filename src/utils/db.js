@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
 
-// Initial Premium Karol Bagh Mock Data for Demo mode
+// Initial Premium Karol Bagh mock data for local property rendering when Supabase is unavailable
 const DEFAULT_MOCK_PROPERTIES = [
   {
     id: 'prop-1',

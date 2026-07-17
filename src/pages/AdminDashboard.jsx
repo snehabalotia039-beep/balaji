@@ -93,11 +93,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
-    } else {
-      sessionStorage.removeItem('balaji_admin_logged_in');
-    }
+    await supabase.auth.signOut();
     toast.success('Successfully logged out');
     navigate('/admin/login');
   };
@@ -372,11 +368,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-          {!isSupabaseConfigured && (
-            <span className="bg-amber-600/20 text-secondary border border-secondary/40 text-[10px] sm:text-xs font-bold px-3 py-1 rounded-sm uppercase tracking-wider hidden sm:inline-block">
-              Demo Mode Active
-            </span>
-          )}
           <button 
             onClick={handleLogout}
             className="flex items-center gap-1 text-slate-400 hover:text-white text-xs sm:text-sm font-bold uppercase transition-colors"

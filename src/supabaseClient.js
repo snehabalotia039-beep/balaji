@@ -13,7 +13,7 @@ export const isSupabaseConfigured = !!(
 
 if (!isSupabaseConfigured) {
   console.warn(
-    '⚠️ Supabase credentials not found or incomplete. The application will run in DEMO mode with local data storage.'
+    '⚠️ Supabase credentials not found or incomplete. Admin and customer authentication are disabled until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are configured.'
   );
 }
 
