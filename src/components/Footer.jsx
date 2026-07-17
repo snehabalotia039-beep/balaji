@@ -68,8 +68,7 @@ export default function Footer() {
                 { label: 'Our Services', path: '/services' },
                 { label: 'About Company', path: '/about' },
                 { label: 'Contact Us', path: '/contact' },
-                { label: 'Book Consultation', path: '/book' },
-                { label: 'Admin Login', path: '/admin/login' }
+                { label: 'Book Consultation', path: '/book' }
               ].map((link, idx) => (
                 <li key={idx}>
                   <Link 
